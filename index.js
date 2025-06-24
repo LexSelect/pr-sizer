@@ -166,7 +166,6 @@ async function gatherExcludes({ baseRef, exec }) {
 		`origin/${baseRef}`,
 		'HEAD',
 		'--name-only',
-		'--no-renames',
 	]);
 	const files = o1.stdout.split(/\r?\n/).filter((n) => n.length > 0);
 
@@ -213,7 +212,6 @@ async function getSize({ baseRef, exec, excludes, ignores, ignoreDeletedLines })
 		'diff',
 		`origin/${baseRef}`,
 		'HEAD',
-		'--no-renames',
 		'--numstat',
 		'--ignore-space-change',
 		'--',
