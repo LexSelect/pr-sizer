@@ -170,6 +170,7 @@ async function gatherExcludes({ baseRef, exec }) {
 	]);
 	const files = o1.stdout.split(/\r?\n/).filter((n) => n.length > 0);
 
+	// Git attributes excludes
 	const o2 = await exec.getExecOutput('git', [
 		'check-attr',
 		'linguist-generated',
@@ -177,12 +178,55 @@ async function gatherExcludes({ baseRef, exec }) {
 		'--',
 		...files,
 	]);
-	const excludes = o2.stdout
+	const gitAttributeExcludes = o2.stdout
 		.split(/\r?\n/)
 		.filter((a) => a.endsWith(': set') || a.endsWith(': true'))
 		.map((a) => a.split(':')[0]);
 
-	return [...new Set(excludes)];
+	// Pattern-based excludes
+	const patternExcludes = [];
+	const excludePatterns = process.env.exclude_patterns;
+	if (excludePatterns) {
+		const patterns = excludePatterns
+			.split(/[,\s]+/)
+			.filter((p) => p.length > 0);
+		
+		console.log(`Exclude patterns: ${patterns.join(', ')}`);
+		
+		for (const file of files) {
+			for (const pattern of patterns) {
+				if (matchesPattern(file, pattern)) {
+					console.log(`Excluding file "${file}" (matches pattern "${pattern}")`);
+					patternExcludes.push(file);
+					break;
+				}
+			}
+		}
+	}
+
+	const allExcludes = [...new Set([...gitAttributeExcludes, ...patternExcludes])];
+	console.log(`Total excludes: ${allExcludes.join(', ')}`);
+	return allExcludes;
+}
+
+/**
+ * Check if a file path matches a glob-like pattern.
+ */
+function matchesPattern(filePath, pattern) {
+	// First escape dots and other regex special chars, but leave *, ?, [ and ] alone for now
+	let regexPattern = pattern.replace(/[.+^${}()|\\]/g, '\\$&');
+	
+	// Now convert glob patterns to regex
+	regexPattern = regexPattern
+		.replace(/\*\*/g, '__DOUBLESTAR__') // Temporarily replace ** 
+		.replace(/\*/g, '[^/]*') // * matches anything except /
+		.replace(/__DOUBLESTAR__/g, '.*') // ** matches anything including / (zero or more chars)
+		.replace(/\?/g, '[^/]'); // ? matches single char except /
+	
+	// Create regex that matches the full path
+	const regex = new RegExp(`^${regexPattern}$`);
+	console.log(`Testing "${filePath}" against pattern "${pattern}" -> regex: ${regex} -> result: ${regex.test(filePath)}`);
+	return regex.test(filePath);
 }
 
 /**
@@ -238,8 +282,14 @@ async function getSize({ baseRef, exec, excludes, ignores, ignoreDeletedLines })
 		additionalIgnores = data.filter((d) => d.added === 0 && d.removed > 0).map((d) => d.name);
 	}
 
+	const totalAdded = data.reduce((t, d) => t + d.added, 0);
+	const totalRemoved = data.reduce((t, d) => t + d.removed, 0);
+	const size = data.reduce((t, d) => t + (ignoreDeletedLines ? d.added : d.added + d.removed), 0);
+	
+	console.log(`Lines changed: +${totalAdded} -${totalRemoved} (total: ${size})`);
+
 	return {
-		size: data.reduce((t, d) => t + (ignoreDeletedLines ? d.added : d.added + d.removed), 0),
+		size,
 		includes: data.map((d) => d.name).filter((f) => !additionalIgnores.includes(f)),
 		ignores: additionalIgnores,
 	};

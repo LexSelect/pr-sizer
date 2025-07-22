@@ -73,6 +73,10 @@ inputs:
     description: "Ignore lines deletion when calculating the number of lines changed."
     required: false
     default: "false"
+  exclude-patterns:
+    description: "Space or comma-separated list of file patterns to exclude from size calculation (e.g., 'services/app/**' '*.css' '**/atoms/**' '**/shadcn/**')."
+    required: false
+    default: ""
 
 outputs:
   label:
@@ -117,3 +121,4 @@ runs:
         color: ${{ inputs.color }}
         ignore_deleted_files: ${{ inputs.ignore-deleted-files }}
         ignore_deleted_lines: ${{ inputs.ignore-deleted-lines }}
+        exclude_patterns: ${{ inputs.exclude-patterns }}
