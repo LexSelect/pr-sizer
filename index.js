@@ -276,8 +276,14 @@ async function getSize({ baseRef, exec, excludes, ignores, ignoreDeletedLines })
 		additionalIgnores = data.filter((d) => d.added === 0 && d.removed > 0).map((d) => d.name);
 	}
 
+	const totalAdded = data.reduce((t, d) => t + d.added, 0);
+	const totalRemoved = data.reduce((t, d) => t + d.removed, 0);
+	const size = data.reduce((t, d) => t + (ignoreDeletedLines ? d.added : d.added + d.removed), 0);
+	
+	console.log(`Lines changed: +${totalAdded} -${totalRemoved} (total: ${size})`);
+
 	return {
-		size: data.reduce((t, d) => t + (ignoreDeletedLines ? d.added : d.added + d.removed), 0),
+		size,
 		includes: data.map((d) => d.name).filter((f) => !additionalIgnores.includes(f)),
 		ignores: additionalIgnores,
 	};
