@@ -191,9 +191,12 @@ async function gatherExcludes({ baseRef, exec }) {
 			.split(/[,\s]+/)
 			.filter((p) => p.length > 0);
 		
+		console.log(`Exclude patterns: ${patterns.join(', ')}`);
+		
 		for (const file of files) {
 			for (const pattern of patterns) {
 				if (matchesPattern(file, pattern)) {
+					console.log(`Excluding file "${file}" (matches pattern "${pattern}")`);
 					patternExcludes.push(file);
 					break;
 				}
