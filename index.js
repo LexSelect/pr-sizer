@@ -215,7 +215,7 @@ function matchesPattern(filePath, pattern) {
 	regexPattern = regexPattern
 		.replace(/\*\*/g, '__DOUBLESTAR__') // Temporarily replace ** 
 		.replace(/\*/g, '[^/]*') // * matches anything except /
-		.replace(/__DOUBLESTAR__/g, '.*') // ** matches anything including /
+		.replace(/__DOUBLESTAR__/g, '(?:.*/)?') // ** matches zero or more directories
 		.replace(/\?/g, '[^/]'); // ? matches single char except /
 	
 	// Create regex that matches the full path
