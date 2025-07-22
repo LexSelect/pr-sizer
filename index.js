@@ -218,11 +218,12 @@ function matchesPattern(filePath, pattern) {
 	regexPattern = regexPattern
 		.replace(/\*\*/g, '__DOUBLESTAR__') // Temporarily replace ** 
 		.replace(/\*/g, '[^/]*') // * matches anything except /
-		.replace(/__DOUBLESTAR__/g, '(?:.*/)?') // ** matches zero or more directories
+		.replace(/__DOUBLESTAR__/g, '.*') // ** matches anything including / (zero or more chars)
 		.replace(/\?/g, '[^/]'); // ? matches single char except /
 	
 	// Create regex that matches the full path
 	const regex = new RegExp(`^${regexPattern}$`);
+	console.log(`Testing "${filePath}" against pattern "${pattern}" -> regex: ${regex} -> result: ${regex.test(filePath)}`);
 	return regex.test(filePath);
 }
 
