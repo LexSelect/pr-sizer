@@ -204,7 +204,9 @@ async function gatherExcludes({ baseRef, exec }) {
 		}
 	}
 
-	return [...new Set([...gitAttributeExcludes, ...patternExcludes])];
+	const allExcludes = [...new Set([...gitAttributeExcludes, ...patternExcludes])];
+	console.log(`Total excludes: ${allExcludes.join(', ')}`);
+	return allExcludes;
 }
 
 /**
