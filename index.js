@@ -170,6 +170,7 @@ async function gatherExcludes({ baseRef, exec }) {
 	]);
 	const files = o1.stdout.split(/\r?\n/).filter((n) => n.length > 0);
 
+	// Git attributes excludes
 	const o2 = await exec.getExecOutput('git', [
 		'check-attr',
 		'linguist-generated',
@@ -177,12 +178,49 @@ async function gatherExcludes({ baseRef, exec }) {
 		'--',
 		...files,
 	]);
-	const excludes = o2.stdout
+	const gitAttributeExcludes = o2.stdout
 		.split(/\r?\n/)
 		.filter((a) => a.endsWith(': set') || a.endsWith(': true'))
 		.map((a) => a.split(':')[0]);
 
-	return [...new Set(excludes)];
+	// Pattern-based excludes
+	const patternExcludes = [];
+	const excludePatterns = process.env.exclude_patterns;
+	if (excludePatterns) {
+		const patterns = excludePatterns
+			.split(/[,\s]+/)
+			.filter((p) => p.length > 0);
+		
+		for (const file of files) {
+			for (const pattern of patterns) {
+				if (matchesPattern(file, pattern)) {
+					patternExcludes.push(file);
+					break;
+				}
+			}
+		}
+	}
+
+	return [...new Set([...gitAttributeExcludes, ...patternExcludes])];
+}
+
+/**
+ * Check if a file path matches a glob-like pattern.
+ */
+function matchesPattern(filePath, pattern) {
+	// First escape dots and other regex special chars, but leave *, ?, [ and ] alone for now
+	let regexPattern = pattern.replace(/[.+^${}()|\\]/g, '\\$&');
+	
+	// Now convert glob patterns to regex
+	regexPattern = regexPattern
+		.replace(/\*\*/g, '__DOUBLESTAR__') // Temporarily replace ** 
+		.replace(/\*/g, '[^/]*') // * matches anything except /
+		.replace(/__DOUBLESTAR__/g, '.*') // ** matches anything including /
+		.replace(/\?/g, '[^/]'); // ? matches single char except /
+	
+	// Create regex that matches the full path
+	const regex = new RegExp(`^${regexPattern}$`);
+	return regex.test(filePath);
 }
 
 /**
